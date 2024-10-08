@@ -186,6 +186,7 @@ private:
 		set_error(vformat(RTR("Unexpected token: '%s'."), p_what), p_line);
 	}
 
+	void process_error(Tokenizer *p_tokenizer);
 	void process_directive(Tokenizer *p_tokenizer);
 	void process_define(Tokenizer *p_tokenizer);
 	void process_elif(Tokenizer *p_tokenizer);

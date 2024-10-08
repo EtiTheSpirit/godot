@@ -401,9 +401,16 @@ void ShaderPreprocessor::process_directive(Tokenizer *p_tokenizer) {
 		process_include(p_tokenizer);
 	} else if (directive == "pragma") {
 		process_pragma(p_tokenizer);
+	} else if (directive == "error") {
+		process_error(p_tokenizer);
 	} else {
 		set_error(RTR("Unknown directive."), p_tokenizer->get_line());
 	}
+}
+
+void ShaderPreprocessor::process_error(Tokenizer* p_tokenizer) {
+	String body = tokens_to_string(p_tokenizer->advance('\n')).strip_edges();
+	set_error(body, p_tokenizer->get_line());
 }
 
 void ShaderPreprocessor::process_define(Tokenizer *p_tokenizer) {
