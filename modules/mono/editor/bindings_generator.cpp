@@ -2104,6 +2104,11 @@ Error BindingsGenerator::_generate_cs_type(const TypeInterface &itype, const Str
 
 	output.append("\n#nullable disable\n");
 
+	// Added by Xan. Disable warnings about obsolescense in the generated file as they will
+	// result in duplicate intellisense messages, or if the warning is suppressed by user code,
+	// garbage/nonsensical warnings that shouldn't appear in the first place.
+	output.append("#pragma warning disable CS0618\n\n");
+
 	const DocData::ClassDoc *class_doc = itype.class_doc;
 
 	if (class_doc && class_doc->description.size()) {
