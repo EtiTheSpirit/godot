@@ -204,6 +204,8 @@ private:
 	void add_region(int p_line, bool p_enabled, Region *p_parent_region);
 	void start_branch_condition(Tokenizer *p_tokenizer, bool p_success, bool p_continue = false);
 
+	bool assert_is_valid_variant_name(const String &p_string);
+
 	Error expand_condition(const String &p_string, int p_line, String &r_result);
 	void expand_output_macros(int p_start, int p_line);
 	Error expand_macros(const String &p_string, int p_line, String &r_result);

@@ -792,8 +792,16 @@ void ShaderPreprocessor::process_pragma(Tokenizer *p_tokenizer) {
 		PackedStringArray variants = body.split(" ", false);
 		String err;
 		for (String str : variants) {
+			if (str.length() == 1 && str[0] == '_') {
+				set_error("The underscore (_) variant is not needed in this system; variants can be disabled entirely.", line);
+				return;
+			}
+			if (!assert_is_valid_variant_name(str)) {
+				set_error(err.join({ "Invalid variant name: ", str }), line);
+				return;
+			}
 			if (state->variants.find(str) || state->exclusive_variants.find(str)) {
-				set_error(err.join({ "Duplicate variant declaration of \"", str, "\"" }), line);
+				set_error(err.join({ "Duplicate variant: ", str }), line);
 				return;
 			}
 			state->variants.push_back(str);
@@ -803,12 +811,57 @@ void ShaderPreprocessor::process_pragma(Tokenizer *p_tokenizer) {
 		PackedStringArray variants = body.split(" ", false);
 		String err;
 		for (String str : variants) {
+			if (str.length() == 1 && str[0] == '_') {
+				set_error("The underscore (_) variant is not needed in this system; variants can be disabled entirely.", line);
+				return;
+			}
+			if (!assert_is_valid_variant_name(str)) {
+				set_error(err.join({ "Invalid variant name: ", str }), line);
+				return;
+			}
 			if (state->variants.find(str) || state->exclusive_variants.find(str)) {
-				set_error(err.join({ "Duplicate variant declaration of \"", str, "\"" }), line);
+				set_error(err.join({ "Duplicate variant: ", str }), line);
 				return;
 			}
 			state->exclusive_variants.push_back(str);
 		}
+	} else if (label == "default_variants" || label == "default_exclusive_variant") {
+		bool isExclusive = label == "default_exclusive_variant";
+		String body = tokens_to_string(p_tokenizer->advance('\n')).strip_edges();
+		PackedStringArray variants = body.split(" ", false);
+		int size = variants.size();
+		if (size == 0) {
+			set_error(RTR("An empty default_exclusive_variant is useless; the default is already nothing."), line);
+			return;
+		} else if (isExclusive && size > 1) {
+			set_error(RTR("Only one exclusive variant can be default."), line);
+			return;
+		}
+		String err;
+		bool found = false;
+
+		for (String str : variants) {
+			if (!assert_is_valid_variant_name(str)) {
+				set_error(err.join({ "Invalid variant name: ", str }), line);
+				return;
+			}
+			List<String> *wrongList = isExclusive ? &state->variants : &state->exclusive_variants;
+			List<String> *goalList = !isExclusive ? &state->variants : &state->exclusive_variants; // condition flipped
+			if (wrongList->find(str)) {
+				set_error(err.join({ str, " is registered as ", (isExclusive ? "a multi-variant" : "an exclusive variant"), ". It cannot be used here." }), line);
+				return;
+			}
+			if (goalList->find(str)) {
+				found = true;
+			}
+			if (!found) {
+				set_error(err.join({ variants[0], " was not registered. Note that ", label, " must go AFTER all variant declarations." }), line);
+				return;
+			}
+			Define *variant = memnew(Define);
+			state->defines[str] = variant;
+		}
+
 	} else {
 		set_error(RTR("Invalid pragma directive."), line);
 		return;
@@ -820,6 +873,17 @@ void ShaderPreprocessor::process_pragma(Tokenizer *p_tokenizer) {
 		return;
 	}
 	*/
+}
+
+bool ShaderPreprocessor::assert_is_valid_variant_name(const String& p_string) {
+	const CharString bytes = p_string.ascii();
+	const int length = bytes.size();
+	for (int i = 0; i < length; ++i) {
+		const char c = bytes[i];
+		bool isValid = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9' && i != 0) || (c == '_') || (c == 0 && (i == length - 1));
+		if (!isValid) return false;
+	}
+	return true;
 }
 
 void ShaderPreprocessor::process_undef(Tokenizer *p_tokenizer) {
@@ -1263,6 +1327,7 @@ Error ShaderPreprocessor::preprocess(State *p_state, const String &p_code, Strin
 
 	// Add a define used by my game.
 	Define *define = memnew(Define);
+	define->body = "1";
 	state->defines["CONSERVATORY_ADVANCED_SHADER_FEATURES"] = define;
 
 	CommentRemover remover(p_code);
