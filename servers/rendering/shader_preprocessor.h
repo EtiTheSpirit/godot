@@ -167,6 +167,7 @@ private:
 		HashSet<Ref<ShaderInclude>> shader_includes;
 		List<String> variants;
 		List<String> exclusive_variants;
+		bool isShaderInclude = false;
 	};
 
 private:

@@ -411,6 +411,7 @@ void ShaderPreprocessor::process_directive(Tokenizer *p_tokenizer) {
 void ShaderPreprocessor::process_error(Tokenizer *p_tokenizer) {
 	const int line = p_tokenizer->get_line();
 	String body = tokens_to_string(p_tokenizer->advance('\n')).strip_edges();
+	if (state->isShaderInclude) return; // Don't actually cause an error in shader includes.
 	set_error(body, line);
 }
 
@@ -1407,6 +1408,7 @@ Error ShaderPreprocessor::preprocess(const String &p_code, const String &p_filen
 	if (!p_filename.is_empty()) {
 		pp_state.current_filename = p_filename;
 		pp_state.save_regions = r_regions != nullptr;
+		pp_state.isShaderInclude = p_filename.ends_with(".gdshaderinc");
 	}
 	Error err = preprocess(&pp_state, p_code, r_result);
 	if (err != OK) {
