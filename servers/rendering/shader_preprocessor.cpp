@@ -408,9 +408,10 @@ void ShaderPreprocessor::process_directive(Tokenizer *p_tokenizer) {
 	}
 }
 
-void ShaderPreprocessor::process_error(Tokenizer* p_tokenizer) {
+void ShaderPreprocessor::process_error(Tokenizer *p_tokenizer) {
+	const int line = p_tokenizer->get_line();
 	String body = tokens_to_string(p_tokenizer->advance('\n')).strip_edges();
-	set_error(body, p_tokenizer->get_line());
+	set_error(body, line);
 }
 
 void ShaderPreprocessor::process_define(Tokenizer *p_tokenizer) {
@@ -786,15 +787,39 @@ void ShaderPreprocessor::process_pragma(Tokenizer *p_tokenizer) {
 	// If more pragma options are created, then refactor into a more defined structure.
 	if (label == "disable_preprocessor") {
 		state->disabled = true;
+	} else if (label == "variants") {
+		String body = tokens_to_string(p_tokenizer->advance('\n')).strip_edges();
+		PackedStringArray variants = body.split(" ", false);
+		String err;
+		for (String str : variants) {
+			if (state->variants.find(str) || state->exclusive_variants.find(str)) {
+				set_error(err.join({ "Duplicate variant declaration of \"", str, "\"" }), line);
+				return;
+			}
+			state->variants.push_back(str);
+		}
+	} else if (label == "exclusive_variants") {
+		String body = tokens_to_string(p_tokenizer->advance('\n')).strip_edges();
+		PackedStringArray variants = body.split(" ", false);
+		String err;
+		for (String str : variants) {
+			if (state->variants.find(str) || state->exclusive_variants.find(str)) {
+				set_error(err.join({ "Duplicate variant declaration of \"", str, "\"" }), line);
+				return;
+			}
+			state->exclusive_variants.push_back(str);
+		}
 	} else {
 		set_error(RTR("Invalid pragma directive."), line);
 		return;
 	}
 
+	/*
 	if (!p_tokenizer->consume_empty_line()) {
 		set_error(RTR("Invalid pragma directive."), line);
 		return;
 	}
+	*/
 }
 
 void ShaderPreprocessor::process_undef(Tokenizer *p_tokenizer) {
@@ -1236,6 +1261,10 @@ Error ShaderPreprocessor::preprocess(State *p_state, const String &p_code, Strin
 
 	state = p_state;
 
+	// Add a define used by my game.
+	Define *define = memnew(Define);
+	state->defines["CONSERVATORY_ADVANCED_SHADER_FEATURES"] = define;
+
 	CommentRemover remover(p_code);
 	String stripped = remover.strip();
 	String error = remover.get_error();
@@ -1398,10 +1427,13 @@ void ShaderPreprocessor::get_keyword_list(List<String> *r_keywords, bool p_inclu
 	r_keywords->push_back("include");
 	r_keywords->push_back("pragma");
 	r_keywords->push_back("undef");
+	r_keywords->push_back("error");
 }
 
 void ShaderPreprocessor::get_pragma_list(List<String> *r_pragmas) {
 	r_pragmas->push_back("disable_preprocessor");
+	r_pragmas->push_back("variants");
+	r_pragmas->push_back("exclusive_variants");
 }
 
 ShaderPreprocessor::ShaderPreprocessor() {
