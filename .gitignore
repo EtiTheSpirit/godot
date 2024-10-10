@@ -380,3 +380,4 @@ $RECYCLE.BIN/
 *.lnk
 *.generated.props
 /test.bat
+/BUILD_NET.BAT
