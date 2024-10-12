@@ -401,6 +401,8 @@ void ShaderPreprocessor::process_directive(Tokenizer *p_tokenizer) {
 		process_include(p_tokenizer);
 	} else if (directive == "pragma") {
 		process_pragma(p_tokenizer);
+	} else if (directive == "error") {
+		process_error(p_tokenizer);
 	} else {
 		set_error(RTR("Unknown directive."), p_tokenizer->get_line());
 	}
@@ -802,6 +804,22 @@ void ShaderPreprocessor::process_undef(Tokenizer *p_tokenizer) {
 		memdelete(state->defines[label]);
 		state->defines.erase(label);
 	}
+}
+
+void ShaderPreprocessor::process_error(Tokenizer *p_tokenizer) {
+	if (state->current_filename.ends_with(".gdshaderinc")) {
+		// Skip shader includes; typically macros that determine the behavior of included code,
+		// such that invalid macros would warrant the use of the #error directive, will be defined
+		// in the actual shader itself, not the include file.
+
+		// In an ideal world, shader includes would be checked only for syntax, or compiled only
+		// when actually included (so that all errors exist in the context of the shader that is
+		// currently using it), but the engine's current setup does not permit this distinction.
+		return;
+	}
+	const int line = p_tokenizer->get_line();
+	String body = tokens_to_string(p_tokenizer->advance('\n')).strip_edges();
+	set_error(body, line);
 }
 
 void ShaderPreprocessor::add_region(int p_line, bool p_enabled, Region *p_parent_region) {
@@ -1391,6 +1409,7 @@ void ShaderPreprocessor::get_keyword_list(List<String> *r_keywords, bool p_inclu
 	r_keywords->push_back("include");
 	r_keywords->push_back("pragma");
 	r_keywords->push_back("undef");
+	r_keywords->push_back("error");
 }
 
 void ShaderPreprocessor::get_pragma_list(List<String> *r_pragmas) {

@@ -197,6 +197,7 @@ private:
 	void process_include(Tokenizer *p_tokenizer);
 	void process_pragma(Tokenizer *p_tokenizer);
 	void process_undef(Tokenizer *p_tokenizer);
+	void process_error(Tokenizer *p_tokenizer);
 
 	void add_region(int p_line, bool p_enabled, Region *p_parent_region);
 	void start_branch_condition(Tokenizer *p_tokenizer, bool p_success, bool p_continue = false);
