@@ -256,6 +256,12 @@ void __print_line_rich(const String &p_string) {
 			}
 		} else if (tag == "/fgcolor") {
 			output += "\u001b[39;49m";
+		} else if (tag == "lb") {
+			output += "[";
+			pos = brk_pos + 1;
+		} else if (tag == "rb") {
+			output += "]";
+			pos = brk_pos + 1;
 		} else {
 			output += "[";
 			pos = brk_pos + 1;
